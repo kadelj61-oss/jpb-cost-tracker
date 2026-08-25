@@ -167,6 +167,11 @@
     border: 1px solid var(--line); background: #fff; color: var(--ink); max-width: 190px;
   }
   .mini-bar { width: 90px; }
+  .row-menu-btn {
+    background: transparent; border: none; cursor: pointer; color: var(--ink-soft);
+    font-size: 16px; line-height: 1; padding: 4px 8px; border-radius: 5px; font-family: var(--font-body);
+  }
+  .row-menu-btn:hover { background: #F0F0EE; color: var(--ink); }
 
   .empty-state { text-align: center; padding: 50px 20px; color: var(--ink-soft); }
   .empty-state .big { font-family: var(--font-display); font-size: 16px; color: var(--ink); margin-bottom: 6px; text-transform: uppercase; }

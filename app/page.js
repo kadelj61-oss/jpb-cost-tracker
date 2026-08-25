@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "../lib/categories";
 
-const MARKUP = "<div id=\"loading\"><div class=\"spinner\"></div><div class=\"label\">Loading job cost data\u2026</div></div>\n\n<div id=\"app\" style=\"display:none;\">\n  <div class=\"topbar\">\n    <div class=\"topbar-inner\">\n      <div class=\"brand-block\">\n        <div>\n          <p class=\"brand-eyebrow\">Job Cost Tracker</p>\n          <h1 class=\"brand-title\" id=\"project-title\">\u2014</h1>\n        </div>\n        <button class=\"btn-switch-job\" id=\"btn-switch-job\">Switch Job \u25be</button>\n        <button class=\"btn-switch-job\" id=\"btn-logout\" title=\"Log out\">Log Out</button>\n      </div>\n      <div class=\"topbar-stat\">\n        <div class=\"label\">Budget</div>\n        <div class=\"value\" id=\"topbar-budget\">\u2014</div>\n      </div>\n      <div class=\"topbar-stat\">\n        <div class=\"label\">Cost to Date</div>\n        <div class=\"value\" id=\"topbar-cost\">\u2014</div>\n      </div>\n      <div class=\"topbar-stat\">\n        <div class=\"label\">Balance</div>\n        <div class=\"value\" id=\"topbar-balance\">\u2014</div>\n      </div>\n    </div>\n    <div class=\"tabs\">\n      <button class=\"tab\" data-view=\"jobs\">All Jobs</button>\n      <button class=\"tab active\" data-view=\"dashboard\">Dashboard</button>\n      <button class=\"tab\" data-view=\"detail\">Cost Detail</button>\n      <button class=\"tab\" data-view=\"invoices\">Invoice Log</button>\n    </div>\n  </div>\n\n  <main>\n    <div class=\"data-toolbar\">\n      <button class=\"btn ghost small\" id=\"btn-export\">\u2b07 Export to Excel</button>\n      <button class=\"btn ghost small\" id=\"btn-import\">\u2b06 Import Excel</button>\n      <input type=\"file\" id=\"import-file\" accept=\".xlsx,.xls,.csv\" style=\"display:none;\">\n    </div>\n\n    <!-- ALL JOBS -->\n    <section class=\"view\" id=\"view-jobs\">\n      <div class=\"section-head\">\n        <h2 class=\"section-title\">All Jobs</h2>\n        <button class=\"btn primary\" id=\"btn-new-job-fromtab\">+ New Job</button>\n      </div>\n      <div class=\"card-grid\" id=\"job-cards\"></div>\n    </section>\n\n    <!-- DASHBOARD -->\n    <section class=\"view active\" id=\"view-dashboard\">\n      <h2 class=\"section-title\">Budget vs. Actual \u2014 by Area of Work</h2>\n      <div class=\"card-grid\" id=\"cat-cards\"></div>\n    </section>\n\n    <!-- COST DETAIL -->\n    <section class=\"view\" id=\"view-detail\">\n      <h2 class=\"section-title\">Cost Detail \u2014 All PO Lines</h2>\n      <div class=\"toolbar\">\n        <input type=\"text\" id=\"detail-search\" placeholder=\"Search PO # or description\u2026\">\n        <select id=\"detail-cat-filter\"><option value=\"\">All categories</option></select>\n        <div class=\"spacer\"></div>\n        <button class=\"btn ghost\" id=\"btn-add-category\">Manage Categories</button>\n        <button class=\"btn primary\" id=\"btn-add-po\">+ Add PO Line</button>\n      </div>\n      <table id=\"detail-table\">\n        <thead>\n          <tr>\n            <th data-sort=\"po\">PO #<span class=\"arrow\"></span></th>\n            <th data-sort=\"type\">Type<span class=\"arrow\"></span></th>\n            <th data-sort=\"category\">Category<span class=\"arrow\"></span></th>\n            <th class=\"num\" data-sort=\"budget\">Budget<span class=\"arrow\"></span></th>\n            <th class=\"num\" data-sort=\"cost\">Cost to Date<span class=\"arrow\"></span></th>\n            <th class=\"num\" data-sort=\"balance\">Balance<span class=\"arrow\"></span></th>\n            <th>% Spent</th>\n          </tr>\n        </thead>\n        <tbody id=\"detail-tbody\"></tbody>\n      </table>\n    </section>\n\n    <!-- INVOICE LOG -->\n    <section class=\"view\" id=\"view-invoices\">\n      <h2 class=\"section-title\">Invoice Log</h2>\n      <div class=\"toolbar\">\n        <input type=\"text\" id=\"inv-search\" placeholder=\"Search PO # or vendor\u2026\">\n        <select id=\"inv-page-size\">\n          <option value=\"25\">25 per page</option>\n          <option value=\"50\">50 per page</option>\n          <option value=\"100\">100 per page</option>\n          <option value=\"all\">Show all</option>\n        </select>\n        <div class=\"spacer\"></div>\n        <button class=\"btn primary\" id=\"btn-add-invoice\">+ Log Invoice</button>\n      </div>\n      <table id=\"inv-table\">\n        <thead>\n          <tr>\n            <th data-sort=\"date\">Date<span class=\"arrow\"></span></th>\n            <th data-sort=\"po\">PO #<span class=\"arrow\"></span></th>\n            <th data-sort=\"vendor\">Vendor<span class=\"arrow\"></span></th>\n            <th data-sort=\"invoiceNum\">Invoice #<span class=\"arrow\"></span></th>\n            <th class=\"num\" data-sort=\"amount\">Amount<span class=\"arrow\"></span></th>\n            <th></th>\n          </tr>\n        </thead>\n        <tbody id=\"inv-tbody\"></tbody>\n      </table>\n      <div class=\"toolbar\" style=\"justify-content:flex-end;margin-top:10px;margin-bottom:0;\">\n        <span id=\"inv-page-label\" style=\"font-family:var(--font-mono);font-size:12px;color:var(--ink-soft);\"></span>\n        <button class=\"btn small ghost\" id=\"inv-page-prev\">\u2190 Prev</button>\n        <button class=\"btn small ghost\" id=\"inv-page-next\">Next \u2192</button>\n      </div>\n    </section>\n  </main>\n</div>\n\n<!-- Job switcher dropdown -->\n<div class=\"job-menu-overlay\" id=\"job-menu-overlay\">\n  <div class=\"job-menu\" id=\"job-menu\"></div>\n</div>\n\n<!-- Invoice modal -->\n<div class=\"modal-overlay\" id=\"invoice-modal\">\n  <div class=\"modal\">\n    <h3 id=\"invoice-modal-title\">Log Invoice</h3>\n    <input type=\"hidden\" id=\"inv-edit-id\">\n    <div class=\"field\">\n      <label for=\"inv-date\">Date</label>\n      <input type=\"date\" id=\"inv-date\">\n    </div>\n    <div class=\"field\" style=\"position:relative;\">\n      <label for=\"inv-po-input\">PO Code</label>\n      <input type=\"text\" id=\"inv-po-input\" placeholder=\"Search PO # or description\u2026\" autocomplete=\"off\">\n      <input type=\"hidden\" id=\"inv-po\">\n      <div id=\"inv-po-results\" class=\"po-search-results\"></div>\n    </div>\n    <div class=\"field\">\n      <label for=\"inv-vendor\">Vendor</label>\n      <input type=\"text\" id=\"inv-vendor\" placeholder=\"e.g. ABC Framing LLC\">\n    </div>\n    <div class=\"field\">\n      <label for=\"inv-num\">Invoice #</label>\n      <input type=\"text\" id=\"inv-num\" placeholder=\"e.g. 4471\">\n    </div>\n    <div class=\"field\">\n      <label for=\"inv-amount\">Amount ($)</label>\n      <input type=\"number\" id=\"inv-amount\" step=\"0.01\" placeholder=\"0.00\">\n    </div>\n    <div class=\"modal-actions\">\n      <button class=\"btn ghost\" id=\"inv-cancel\">Cancel</button>\n      <button class=\"btn primary\" id=\"inv-save\">Save Invoice</button>\n    </div>\n  </div>\n</div>\n\n<!-- PO modal -->\n<div class=\"modal-overlay\" id=\"po-modal\">\n  <div class=\"modal\">\n    <h3 id=\"po-modal-title\">Add PO Line</h3>\n    <div class=\"field\">\n      <label for=\"po-code\">PO #</label>\n      <input type=\"text\" id=\"po-code\" placeholder=\"e.g. TSN276\">\n    </div>\n    <div class=\"field\">\n      <label for=\"po-type\">Description</label>\n      <input type=\"text\" id=\"po-type\" placeholder=\"e.g. Roof Flashing Labor\">\n    </div>\n    <div class=\"field\">\n      <label for=\"po-category\">Category</label>\n      <select id=\"po-category\"></select>\n    </div>\n    <div class=\"field\">\n      <label for=\"po-budget\">Budget ($)</label>\n      <input type=\"number\" id=\"po-budget\" step=\"0.01\" placeholder=\"0.00\">\n    </div>\n    <div class=\"modal-actions\">\n      <button class=\"btn ghost\" id=\"po-cancel\">Cancel</button>\n      <button class=\"btn primary\" id=\"po-save\">Save PO Line</button>\n    </div>\n  </div>\n</div>\n\n<!-- New Category modal -->\n<div class=\"modal-overlay\" id=\"category-modal\">\n  <div class=\"modal\">\n    <h3>Manage Categories</h3>\n    <div id=\"category-list\" style=\"margin-bottom:14px;\"></div>\n    <div class=\"field\">\n      <label for=\"category-name\">Add a Category</label>\n      <input type=\"text\" id=\"category-name\" placeholder=\"e.g. Landscaping\">\n    </div>\n    <div class=\"modal-actions\">\n      <button class=\"btn ghost\" id=\"category-cancel\">Close</button>\n      <button class=\"btn primary\" id=\"category-save\">Add Category</button>\n    </div>\n  </div>\n</div>\n\n<!-- New Job modal -->\n<div class=\"modal-overlay\" id=\"job-modal\">\n  <div class=\"modal\">\n    <h3>New Job</h3>\n    <div class=\"field\">\n      <label for=\"job-name\">Job Name</label>\n      <input type=\"text\" id=\"job-name\" placeholder=\"e.g. Ocean Ave Duplex\">\n    </div>\n    <div class=\"field\">\n      <label for=\"job-client\">Client</label>\n      <input type=\"text\" id=\"job-client\" placeholder=\"e.g. Meridian Development\">\n    </div>\n    <div class=\"field\">\n      <label for=\"job-start\">Start Date</label>\n      <input type=\"date\" id=\"job-start\">\n    </div>\n    <div class=\"field\">\n      <label for=\"job-status\">Status</label>\n      <select id=\"job-status\">\n        <option value=\"Active\">Active</option>\n        <option value=\"On Hold\">On Hold</option>\n        <option value=\"Complete\">Complete</option>\n      </select>\n    </div>\n    <div class=\"modal-actions\">\n      <button class=\"btn ghost\" id=\"job-cancel\">Cancel</button>\n      <button class=\"btn primary\" id=\"job-save\">Create Job</button>\n    </div>\n  </div>\n</div>\n\n<div id=\"toast\"></div>\n\n<button id=\"back-to-top\" title=\"Back to top\" aria-label=\"Back to top\">\u2191</button>\n\n";
+const MARKUP = "<div id=\"loading\"><div class=\"spinner\"></div><div class=\"label\">Loading job cost data\u2026</div></div>\n\n<div id=\"app\" style=\"display:none;\">\n  <div class=\"topbar\">\n    <div class=\"topbar-inner\">\n      <div class=\"brand-block\">\n        <div>\n          <p class=\"brand-eyebrow\">Job Cost Tracker</p>\n          <h1 class=\"brand-title\" id=\"project-title\">\u2014</h1>\n        </div>\n        <button class=\"btn-switch-job\" id=\"btn-switch-job\">Switch Job \u25be</button>\n        <button class=\"btn-switch-job\" id=\"btn-logout\" title=\"Log out\">Log Out</button>\n      </div>\n      <div class=\"topbar-stat\">\n        <div class=\"label\">Budget</div>\n        <div class=\"value\" id=\"topbar-budget\">\u2014</div>\n      </div>\n      <div class=\"topbar-stat\">\n        <div class=\"label\">Cost to Date</div>\n        <div class=\"value\" id=\"topbar-cost\">\u2014</div>\n      </div>\n      <div class=\"topbar-stat\">\n        <div class=\"label\">Balance</div>\n        <div class=\"value\" id=\"topbar-balance\">\u2014</div>\n      </div>\n    </div>\n    <div class=\"tabs\">\n      <button class=\"tab\" data-view=\"jobs\">All Jobs</button>\n      <button class=\"tab active\" data-view=\"dashboard\">Dashboard</button>\n      <button class=\"tab\" data-view=\"detail\">Cost Detail</button>\n      <button class=\"tab\" data-view=\"invoices\">Invoice Log</button>\n    </div>\n  </div>\n\n  <main>\n    <div class=\"data-toolbar\">\n      <button class=\"btn ghost small\" id=\"btn-export\">\u2b07 Export to Excel</button>\n      <button class=\"btn ghost small\" id=\"btn-import\">\u2b06 Import Excel</button>\n      <input type=\"file\" id=\"import-file\" accept=\".xlsx,.xls,.csv\" style=\"display:none;\">\n    </div>\n\n    <!-- ALL JOBS -->\n    <section class=\"view\" id=\"view-jobs\">\n      <div class=\"section-head\">\n        <h2 class=\"section-title\">All Jobs</h2>\n        <button class=\"btn primary\" id=\"btn-new-job-fromtab\">+ New Job</button>\n      </div>\n      <div class=\"card-grid\" id=\"job-cards\"></div>\n    </section>\n\n    <!-- DASHBOARD -->\n    <section class=\"view active\" id=\"view-dashboard\">\n      <h2 class=\"section-title\">Budget vs. Actual \u2014 by Area of Work</h2>\n      <div class=\"card-grid\" id=\"cat-cards\"></div>\n    </section>\n\n    <!-- COST DETAIL -->\n    <section class=\"view\" id=\"view-detail\">\n      <h2 class=\"section-title\">Cost Detail \u2014 All PO Lines</h2>\n      <div class=\"toolbar\">\n        <input type=\"text\" id=\"detail-search\" placeholder=\"Search PO # or description\u2026\">\n        <select id=\"detail-cat-filter\"><option value=\"\">All categories</option></select>\n        <div class=\"spacer\"></div>\n        <button class=\"btn ghost\" id=\"btn-add-category\">Manage Categories</button>\n        <button class=\"btn primary\" id=\"btn-add-po\">+ Add PO Line</button>\n      </div>\n      <table id=\"detail-table\">\n        <thead>\n          <tr>\n            <th data-sort=\"po\">PO #<span class=\"arrow\"></span></th>\n            <th data-sort=\"type\">Type<span class=\"arrow\"></span></th>\n            <th data-sort=\"category\">Category<span class=\"arrow\"></span></th>\n            <th class=\"num\" data-sort=\"budget\">Budget<span class=\"arrow\"></span></th>\n            <th class=\"num\" data-sort=\"cost\">Cost to Date<span class=\"arrow\"></span></th>\n            <th class=\"num\" data-sort=\"balance\">Balance<span class=\"arrow\"></span></th>\n            <th>% Spent</th>\n            <th></th>\n          </tr>\n        </thead>\n        <tbody id=\"detail-tbody\"></tbody>\n      </table>\n    </section>\n\n    <!-- INVOICE LOG -->\n    <section class=\"view\" id=\"view-invoices\">\n      <h2 class=\"section-title\">Invoice Log</h2>\n      <div class=\"toolbar\">\n        <input type=\"text\" id=\"inv-search\" placeholder=\"Search PO # or vendor\u2026\">\n        <select id=\"inv-page-size\">\n          <option value=\"25\">25 per page</option>\n          <option value=\"50\">50 per page</option>\n          <option value=\"100\">100 per page</option>\n          <option value=\"all\">Show all</option>\n        </select>\n        <div class=\"spacer\"></div>\n        <button class=\"btn primary\" id=\"btn-add-invoice\">+ Log Invoice</button>\n      </div>\n      <table id=\"inv-table\">\n        <thead>\n          <tr>\n            <th data-sort=\"date\">Date<span class=\"arrow\"></span></th>\n            <th data-sort=\"po\">PO #<span class=\"arrow\"></span></th>\n            <th data-sort=\"vendor\">Vendor<span class=\"arrow\"></span></th>\n            <th data-sort=\"invoiceNum\">Invoice #<span class=\"arrow\"></span></th>\n            <th class=\"num\" data-sort=\"amount\">Amount<span class=\"arrow\"></span></th>\n            <th></th>\n          </tr>\n        </thead>\n        <tbody id=\"inv-tbody\"></tbody>\n      </table>\n      <div class=\"toolbar\" style=\"justify-content:flex-end;margin-top:10px;margin-bottom:0;\">\n        <span id=\"inv-page-label\" style=\"font-family:var(--font-mono);font-size:12px;color:var(--ink-soft);\"></span>\n        <button class=\"btn small ghost\" id=\"inv-page-prev\">\u2190 Prev</button>\n        <button class=\"btn small ghost\" id=\"inv-page-next\">Next \u2192</button>\n      </div>\n    </section>\n  </main>\n</div>\n\n<!-- Job switcher dropdown -->\n<div class=\"job-menu-overlay\" id=\"job-menu-overlay\">\n  <div class=\"job-menu\" id=\"job-menu\"></div>\n</div>\n\n<!-- PO row action menu -->\n<div class=\"job-menu-overlay\" id=\"po-row-menu-overlay\">\n  <div class=\"job-menu\" id=\"po-row-menu\" style=\"width:160px;\">\n    <div class=\"job-menu-item\" id=\"po-row-menu-edit\"><span class=\"jm-name\">Edit</span></div>\n    <div class=\"job-menu-item\" id=\"po-row-menu-delete\"><span class=\"jm-name\" style=\"color:var(--bad);\">Delete</span></div>\n  </div>\n</div>\n\n<!-- Invoice modal -->\n<div class=\"modal-overlay\" id=\"invoice-modal\">\n  <div class=\"modal\">\n    <h3 id=\"invoice-modal-title\">Log Invoice</h3>\n    <input type=\"hidden\" id=\"inv-edit-id\">\n    <div class=\"field\">\n      <label for=\"inv-date\">Date</label>\n      <input type=\"date\" id=\"inv-date\">\n    </div>\n    <div class=\"field\" style=\"position:relative;\">\n      <label for=\"inv-po-input\">PO Code</label>\n      <input type=\"text\" id=\"inv-po-input\" placeholder=\"Search PO # or description\u2026\" autocomplete=\"off\">\n      <input type=\"hidden\" id=\"inv-po\">\n      <div id=\"inv-po-results\" class=\"po-search-results\"></div>\n    </div>\n    <div class=\"field\">\n      <label for=\"inv-vendor\">Vendor</label>\n      <input type=\"text\" id=\"inv-vendor\" placeholder=\"e.g. ABC Framing LLC\">\n    </div>\n    <div class=\"field\">\n      <label for=\"inv-num\">Invoice #</label>\n      <input type=\"text\" id=\"inv-num\" placeholder=\"e.g. 4471\">\n    </div>\n    <div class=\"field\">\n      <label for=\"inv-amount\">Amount ($)</label>\n      <input type=\"number\" id=\"inv-amount\" step=\"0.01\" placeholder=\"0.00\">\n    </div>\n    <div class=\"modal-actions\">\n      <button class=\"btn ghost\" id=\"inv-cancel\">Cancel</button>\n      <button class=\"btn primary\" id=\"inv-save\">Save Invoice</button>\n    </div>\n  </div>\n</div>\n\n<!-- PO modal -->\n<div class=\"modal-overlay\" id=\"po-modal\">\n  <div class=\"modal\">\n    <h3 id=\"po-modal-title\">Add PO Line</h3>\n    <input type=\"hidden\" id=\"po-edit-original\">\n    <div class=\"field\">\n      <label for=\"po-code\">PO #</label>\n      <input type=\"text\" id=\"po-code\" placeholder=\"e.g. TSN276\">\n    </div>\n    <div class=\"field\">\n      <label for=\"po-type\">Description</label>\n      <input type=\"text\" id=\"po-type\" placeholder=\"e.g. Roof Flashing Labor\">\n    </div>\n    <div class=\"field\">\n      <label for=\"po-category\">Category</label>\n      <select id=\"po-category\"></select>\n    </div>\n    <div class=\"field\">\n      <label for=\"po-budget\">Budget ($)</label>\n      <input type=\"number\" id=\"po-budget\" step=\"0.01\" placeholder=\"0.00\">\n    </div>\n    <div class=\"modal-actions\">\n      <button class=\"btn ghost\" id=\"po-cancel\">Cancel</button>\n      <button class=\"btn primary\" id=\"po-save\">Save PO Line</button>\n    </div>\n  </div>\n</div>\n\n<!-- New Category modal -->\n<div class=\"modal-overlay\" id=\"category-modal\">\n  <div class=\"modal\">\n    <h3>Manage Categories</h3>\n    <div id=\"category-list\" style=\"margin-bottom:14px;\"></div>\n    <div class=\"field\">\n      <label for=\"category-name\">Add a Category</label>\n      <input type=\"text\" id=\"category-name\" placeholder=\"e.g. Landscaping\">\n    </div>\n    <div class=\"modal-actions\">\n      <button class=\"btn ghost\" id=\"category-cancel\">Close</button>\n      <button class=\"btn primary\" id=\"category-save\">Add Category</button>\n    </div>\n  </div>\n</div>\n\n<!-- New Job modal -->\n<div class=\"modal-overlay\" id=\"job-modal\">\n  <div class=\"modal\">\n    <h3>New Job</h3>\n    <div class=\"field\">\n      <label for=\"job-name\">Job Name</label>\n      <input type=\"text\" id=\"job-name\" placeholder=\"e.g. Ocean Ave Duplex\">\n    </div>\n    <div class=\"field\">\n      <label for=\"job-client\">Client</label>\n      <input type=\"text\" id=\"job-client\" placeholder=\"e.g. Meridian Development\">\n    </div>\n    <div class=\"field\">\n      <label for=\"job-start\">Start Date</label>\n      <input type=\"date\" id=\"job-start\">\n    </div>\n    <div class=\"field\">\n      <label for=\"job-status\">Status</label>\n      <select id=\"job-status\">\n        <option value=\"Active\">Active</option>\n        <option value=\"On Hold\">On Hold</option>\n        <option value=\"Complete\">Complete</option>\n      </select>\n    </div>\n    <div class=\"modal-actions\">\n      <button class=\"btn ghost\" id=\"job-cancel\">Cancel</button>\n      <button class=\"btn primary\" id=\"job-save\">Create Job</button>\n    </div>\n  </div>\n</div>\n\n<div id=\"toast\"></div>\n\n<button id=\"back-to-top\" title=\"Back to top\" aria-label=\"Back to top\">\u2191</button>\n\n";
 
 export default function HomePage() {
   const containerRef = useRef(null);
@@ -322,7 +322,7 @@ function boot(router) {
   function renderDetail() {
     const job = activeJob();
     if (!job) {
-      document.getElementById("detail-tbody").innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="big">No jobs yet</div>Head to the All Jobs tab and click "+ New Job".</div></td></tr>';
+      document.getElementById("detail-tbody").innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="big">No jobs yet</div>Head to the All Jobs tab and click "+ New Job".</div></td></tr>';
       return;
     }
     const search = document.getElementById("detail-search").value.trim().toLowerCase();
@@ -347,11 +347,11 @@ function boot(router) {
 
     const tbody = document.getElementById("detail-tbody");
     if (job.pos.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="big">No PO lines yet</div>Click "+ Add PO Line" to add the first one for this job.</div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="big">No PO lines yet</div>Click "+ Add PO Line" to add the first one for this job.</div></td></tr>';
       return;
     }
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="big">No matching PO lines</div>Try clearing the search or filter.</div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="big">No matching PO lines</div>Try clearing the search or filter.</div></td></tr>';
       return;
     }
     tbody.innerHTML = rows.map((r) => (
@@ -365,6 +365,7 @@ function boot(router) {
         '<td class="num">' + fmtMoney(r.cost) + '</td>' +
         '<td class="num balance">' + fmtMoney(r.balance) + '</td>' +
         '<td class="mini-bar">' + tapeBarHTML(r.pct) + '</td>' +
+        '<td><button class="row-menu-btn" data-po-menu="' + r.po + '" title="Manage this PO line">\u22ee</button></td>' +
       '</tr>'
     )).join("");
 
@@ -376,6 +377,13 @@ function boot(router) {
           await refresh();
           toast(po + " moved to " + e.target.value);
         } catch (err) { toast(err.message); }
+      });
+    });
+
+    tbody.querySelectorAll("[data-po-menu]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openPORowMenu(btn.getAttribute("data-po-menu"), btn);
       });
     });
   }
@@ -491,6 +499,46 @@ function boot(router) {
   document.getElementById("btn-switch-job").addEventListener("click", () => { renderJobMenu(); jobMenuOverlay.classList.add("open"); });
   jobMenuOverlay.addEventListener("click", (e) => { if (e.target === jobMenuOverlay) jobMenuOverlay.classList.remove("open"); });
 
+  // ---------- PO row menu ----------
+  const poRowMenuOverlay = document.getElementById("po-row-menu-overlay");
+  const poRowMenu = document.getElementById("po-row-menu");
+  let poRowMenuTarget = null; // the PO # the open menu refers to
+
+  function openPORowMenu(po, anchorEl) {
+    poRowMenuTarget = po;
+    const rect = anchorEl.getBoundingClientRect();
+    const menuWidth = 160;
+    let left = rect.right + window.scrollX - menuWidth;
+    left = Math.max(8, Math.min(left, window.scrollX + window.innerWidth - menuWidth - 8));
+    poRowMenu.style.left = left + "px";
+    poRowMenu.style.top = (rect.bottom + window.scrollY + 4) + "px";
+    poRowMenuOverlay.classList.add("open");
+  }
+  poRowMenuOverlay.addEventListener("click", (e) => {
+    if (e.target === poRowMenuOverlay) poRowMenuOverlay.classList.remove("open");
+  });
+  document.getElementById("po-row-menu-edit").addEventListener("click", () => {
+    poRowMenuOverlay.classList.remove("open");
+    openPOModal(poRowMenuTarget);
+  });
+  document.getElementById("po-row-menu-delete").addEventListener("click", async () => {
+    poRowMenuOverlay.classList.remove("open");
+    const job = activeJob();
+    const po = poRowMenuTarget;
+    const rec = job.pos.find((p) => p.po === po);
+    if (!rec) return;
+    const invCount = job.invoices.filter((i) => i.po === po).length;
+    const msg = invCount > 0
+      ? 'Delete PO "' + po + '"? ' + invCount + " logged invoice" + (invCount !== 1 ? "s" : "") + " on it will also be deleted. This cannot be undone."
+      : 'Delete PO "' + po + '"? This cannot be undone.';
+    if (!confirm(msg)) return;
+    try {
+      await api("/api/pos?jobId=" + encodeURIComponent(job.id) + "&po=" + encodeURIComponent(po), { method: "DELETE" });
+      await refresh();
+      toast(po + " deleted");
+    } catch (err) { toast(err.message); }
+  });
+
   document.getElementById("btn-logout").addEventListener("click", async () => {
     await fetch("/api/logout", { method: "POST" });
     router.push("/login");
@@ -587,18 +635,32 @@ function boot(router) {
   // ---------- PO modal ----------
   const poModal = document.getElementById("po-modal");
   let poCategoryTouched = false;
-  function openPOModal() {
+  function openPOModal(editPo) {
     if (!activeJob()) { toast("Create a job first"); return; }
     populateCatSelects();
-    document.getElementById("po-modal-title").textContent = "Add PO Line";
-    document.getElementById("po-code").value = "";
-    document.getElementById("po-type").value = "";
-    document.getElementById("po-budget").value = "";
     poCategoryTouched = false;
+    if (editPo) {
+      const job = activeJob();
+      const rec = job.pos.find((p) => p.po === editPo);
+      if (!rec) { toast("That PO line no longer exists"); return; }
+      document.getElementById("po-modal-title").textContent = "Edit PO Line";
+      document.getElementById("po-edit-original").value = editPo;
+      document.getElementById("po-code").value = rec.po;
+      document.getElementById("po-type").value = rec.type;
+      document.getElementById("po-budget").value = rec.budget;
+      poCategoryTouched = true; // don't let the auto-classify-on-type overwrite an existing category
+      document.getElementById("po-category").value = rec.category;
+    } else {
+      document.getElementById("po-modal-title").textContent = "Add PO Line";
+      document.getElementById("po-edit-original").value = "";
+      document.getElementById("po-code").value = "";
+      document.getElementById("po-type").value = "";
+      document.getElementById("po-budget").value = "";
+    }
     poModal.classList.add("open");
     document.getElementById("po-code").focus();
   }
-  document.getElementById("btn-add-po").addEventListener("click", openPOModal);
+  document.getElementById("btn-add-po").addEventListener("click", () => openPOModal(null));
   document.getElementById("po-cancel").addEventListener("click", () => poModal.classList.remove("open"));
   poModal.addEventListener("click", (e) => { if (e.target === poModal) poModal.classList.remove("open"); });
   document.getElementById("po-category").addEventListener("change", (e) => {
@@ -613,6 +675,7 @@ function boot(router) {
   });
 
   document.getElementById("po-save").addEventListener("click", async () => {
+    const editOriginal = document.getElementById("po-edit-original").value;
     const code = document.getElementById("po-code").value.trim();
     const type = document.getElementById("po-type").value.trim();
     const budget = parseFloat(document.getElementById("po-budget").value) || 0;
@@ -620,10 +683,20 @@ function boot(router) {
     if (!code || !type) { toast("PO # and description are required"); return; }
     if (category === "__new__") { toast("Add or pick a category first"); return; }
     try {
-      await api("/api/pos", { method: "POST", body: JSON.stringify({ jobId: activeJob().id, po: code, type, budget, category }) });
-      poModal.classList.remove("open");
-      await refresh();
-      toast(code + " added");
+      if (editOriginal) {
+        await api("/api/pos", {
+          method: "PATCH",
+          body: JSON.stringify({ jobId: activeJob().id, po: editOriginal, newPo: code, type, category, budget }),
+        });
+        poModal.classList.remove("open");
+        await refresh();
+        toast(code + " updated");
+      } else {
+        await api("/api/pos", { method: "POST", body: JSON.stringify({ jobId: activeJob().id, po: code, type, budget, category }) });
+        poModal.classList.remove("open");
+        await refresh();
+        toast(code + " added");
+      }
     } catch (err) { toast(err.message); }
   });
 
