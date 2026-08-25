@@ -118,6 +118,13 @@ function boot(router) {
   // ---------- Render ----------
   function renderTopbar() {
     const job = activeJob();
+    if (!job) {
+      document.getElementById("project-title").textContent = "No jobs yet";
+      document.getElementById("topbar-budget").textContent = "—";
+      document.getElementById("topbar-cost").textContent = "—";
+      document.getElementById("topbar-balance").textContent = "—";
+      return;
+    }
     document.getElementById("project-title").textContent = job.name;
     const t = jobTotals(job);
     document.getElementById("topbar-budget").textContent = fmtMoney(t.budget);
@@ -149,8 +156,10 @@ function boot(router) {
           '<div class="cat-figures"><span>Budget <b>' + fmtMoney(t.budget) + '</b></span><span>Actual <b>' + fmtMoney(t.cost) + '</b></span></div>' +
           tapeBarHTML(t.pct) +
           '<div class="job-card-foot"><span class="pct">' + fmtPct(t.pct) + ' spent · ' + fmtMoney(t.balance) + ' balance</span>' +
+          '<span style="display:flex;gap:6px;">' +
+          '<button class="btn small danger-ghost" data-delete-job="' + j.id + '">Delete</button>' +
           '<button class="btn small ' + (j.id === state.activeJobId ? "ghost" : "primary") + '" data-open-job="' + j.id + '">' +
-          (j.id === state.activeJobId ? "Current" : "Open") + '</button></div>' +
+          (j.id === state.activeJobId ? "Current" : "Open") + '</button></span></div>' +
         '</div>'
       );
     }).join("");
@@ -165,11 +174,34 @@ function boot(router) {
         toast("Switched to " + activeJob().name);
       });
     });
+
+    wrap.querySelectorAll("[data-delete-job]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-delete-job");
+        const job = state.jobs.find((j) => j.id === id);
+        if (!job) return;
+        const label = job.name + (job.pos.length ? " (" + job.pos.length + " PO lines, " + job.invoices.length + " invoices)" : "");
+        if (!confirm('Delete "' + label + '"? This permanently deletes all its PO lines and invoices. This cannot be undone.')) return;
+        try {
+          await api("/api/jobs?id=" + encodeURIComponent(id), { method: "DELETE" });
+          await loadState();
+          if (state.activeJobId === id || !state.jobs.find((j) => j.id === state.activeJobId)) {
+            state.activeJobId = state.jobs[0] ? state.jobs[0].id : null;
+          }
+          renderAll();
+          toast(job.name + " deleted");
+        } catch (err) { toast(err.message); }
+      });
+    });
   }
 
   function renderDashboard() {
     const job = activeJob();
     const wrap = document.getElementById("cat-cards");
+    if (!job) {
+      wrap.innerHTML = '<div class="empty-state"><div class="big">No jobs yet</div>Head to the All Jobs tab and click "+ New Job".</div>';
+      return;
+    }
     const summary = categorySummary(job).sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
     if (summary.length === 0) {
       wrap.innerHTML = '<div class="empty-state"><div class="big">No cost data yet</div>Add a PO line and log an invoice to see budget vs. actual.</div>';
@@ -207,6 +239,10 @@ function boot(router) {
 
   function renderDetail() {
     const job = activeJob();
+    if (!job) {
+      document.getElementById("detail-tbody").innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="big">No jobs yet</div>Head to the All Jobs tab and click "+ New Job".</div></td></tr>';
+      return;
+    }
     const search = document.getElementById("detail-search").value.trim().toLowerCase();
     const catFilter = document.getElementById("detail-cat-filter").value;
     let rows = job.pos.map((p) => {
@@ -264,6 +300,10 @@ function boot(router) {
 
   function renderInvoices() {
     const job = activeJob();
+    if (!job) {
+      document.getElementById("inv-tbody").innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="big">No jobs yet</div>Head to the All Jobs tab and click "+ New Job".</div></td></tr>';
+      return;
+    }
     const search = document.getElementById("inv-search").value.trim().toLowerCase();
     let rows = [...job.invoices];
     if (search) rows = rows.filter((r) => r.po.toLowerCase().includes(search) || (r.vendor || "").toLowerCase().includes(search));
@@ -379,8 +419,9 @@ function boot(router) {
   // ---------- Invoice modal ----------
   const invoiceModal = document.getElementById("invoice-modal");
   function openInvoiceModal(editId) {
-    populatePOSelect();
     const job = activeJob();
+    if (!job) { toast("Create a job first"); return; }
+    populatePOSelect();
     if (job.pos.length === 0) { toast("Add a PO line for this job first"); return; }
     const editIdField = document.getElementById("inv-edit-id");
     if (editId) {
@@ -437,6 +478,7 @@ function boot(router) {
   const poModal = document.getElementById("po-modal");
   let poCategoryTouched = false;
   function openPOModal() {
+    if (!activeJob()) { toast("Create a job first"); return; }
     populateCatSelects();
     document.getElementById("po-modal-title").textContent = "Add PO Line";
     document.getElementById("po-code").value = "";
@@ -568,6 +610,7 @@ function boot(router) {
 
   function exportToExcel() {
     const job = activeJob();
+    if (!job) { toast("Create a job first"); return; }
     const poRows = job.pos.map((p) => {
       const cost = costForPO(job, p.po);
       return { "PO #": p.po, "Type": p.type, "Category": p.category, "Budget": p.budget, "Cost to Date": cost, "Balance": (Number(p.budget) || 0) - cost };
@@ -628,6 +671,7 @@ function boot(router) {
     const file = e.target.files[0];
     if (!file) return;
     const job = activeJob();
+    if (!job) { toast("Create a job first"); e.target.value = ""; return; }
     try {
       const data = await file.arrayBuffer();
       const wb = window.XLSX.read(data, { type: "array" });
