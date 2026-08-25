@@ -229,6 +229,20 @@
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  #back-to-top {
+    position: fixed; bottom: 24px; right: 28px; width: 44px; height: 44px;
+    border-radius: 50%; border: none; background: var(--safety); color: #fff;
+    font-size: 18px; line-height: 1; cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.22);
+    opacity: 0; pointer-events: none; transform: translateY(10px);
+    transition: opacity 0.2s ease, transform 0.2s ease, filter 0.12s ease;
+    z-index: 90;
+  }
+  #back-to-top.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  #back-to-top:hover { filter: brightness(1.08); }
+  @media (max-width: 720px) {
+    #back-to-top { right: 16px; bottom: 16px; }
+  }
+
   #loading { position: fixed; inset: 0; background: var(--paper); display: flex; align-items: center; justify-content: center; z-index: 200; flex-direction: column; gap: 10px; }
   #loading .label { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); }
   .spinner { width: 22px; height: 22px; border: 3px solid var(--line); border-top-color: var(--safety); border-radius: 50%; animation: spin 0.7s linear infinite; }
