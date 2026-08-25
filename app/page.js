@@ -508,10 +508,14 @@ function boot(router) {
     poRowMenuTarget = po;
     const rect = anchorEl.getBoundingClientRect();
     const menuWidth = 160;
-    let left = rect.right + window.scrollX - menuWidth;
-    left = Math.max(8, Math.min(left, window.scrollX + window.innerWidth - menuWidth - 8));
+    // po-row-menu-overlay is position:fixed (viewport-anchored), so its absolutely
+    // positioned child needs viewport-relative coordinates straight off the rect —
+    // adding window.scrollY/X here would push the menu further off-screen the more
+    // the page is scrolled, which is exactly what was happening on longer PO lists.
+    let left = rect.right - menuWidth;
+    left = Math.max(8, Math.min(left, window.innerWidth - menuWidth - 8));
     poRowMenu.style.left = left + "px";
-    poRowMenu.style.top = (rect.bottom + window.scrollY + 4) + "px";
+    poRowMenu.style.top = (rect.bottom + 4) + "px";
     poRowMenuOverlay.classList.add("open");
   }
   poRowMenuOverlay.addEventListener("click", (e) => {
