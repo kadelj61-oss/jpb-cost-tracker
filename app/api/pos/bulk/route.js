@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { sql, ensureSchema } from "../../../../lib/db";
-import { classifyType, CATEGORIES } from "../../../../lib/categories";
+import { classifyType } from "../../../../lib/categories";
 
 export async function POST(req) {
   await ensureSchema();
@@ -8,6 +8,9 @@ export async function POST(req) {
   const jobId = String(b.jobId || "");
   const rows = Array.isArray(b.rows) ? b.rows : [];
   if (!jobId) return NextResponse.json({ error: "jobId is required" }, { status: 400 });
+
+  const { rows: categoryRows } = await sql`SELECT name FROM categories;`;
+  const CATEGORIES = categoryRows.map((c) => c.name);
 
   let updated = 0;
   let added = 0;

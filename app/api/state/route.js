@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { sql, ensureSchema } from "../../../lib/db";
-import { CATEGORIES } from "../../../lib/categories";
 
 export async function GET() {
   await ensureSchema();
@@ -8,6 +7,7 @@ export async function GET() {
   const { rows: jobs } = await sql`SELECT * FROM jobs ORDER BY created_at ASC;`;
   const { rows: pos } = await sql`SELECT * FROM pos;`;
   const { rows: invoices } = await sql`SELECT * FROM invoices;`;
+  const { rows: categoryRows } = await sql`SELECT name FROM categories ORDER BY id ASC;`;
 
   const jobsOut = jobs.map((j) => ({
     id: j.id,
@@ -31,5 +31,5 @@ export async function GET() {
       })),
   }));
 
-  return NextResponse.json({ categories: CATEGORIES, jobs: jobsOut });
+  return NextResponse.json({ categories: categoryRows.map((c) => c.name), jobs: jobsOut });
 }
