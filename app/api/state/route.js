@@ -28,6 +28,7 @@ export async function GET() {
         invoiceNum: i.invoice_num,
         amount: Number(i.amount),
         source: i.source,
+        loggedAt: i.logged_at,
       })),
   }));
 
