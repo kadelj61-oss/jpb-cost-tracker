@@ -621,7 +621,9 @@ function boot(router) {
   }
   document.getElementById("btn-add-invoice").addEventListener("click", () => openInvoiceModal(null));
   document.getElementById("inv-cancel").addEventListener("click", () => invoiceModal.classList.remove("open"));
-  invoiceModal.addEventListener("click", (e) => { if (e.target === invoiceModal) invoiceModal.classList.remove("open"); });
+  // Deliberately no click-outside-to-close here — a stray click on the dimmed
+  // backdrop shouldn't silently discard an in-progress invoice entry. Cancel
+  // or Save are the only ways out.
 
   document.getElementById("inv-save").addEventListener("click", async () => {
     const editId = document.getElementById("inv-edit-id").value;
@@ -679,7 +681,7 @@ function boot(router) {
   }
   document.getElementById("btn-add-po").addEventListener("click", () => openPOModal(null));
   document.getElementById("po-cancel").addEventListener("click", () => poModal.classList.remove("open"));
-  poModal.addEventListener("click", (e) => { if (e.target === poModal) poModal.classList.remove("open"); });
+  // No click-outside-to-close — same reasoning as the invoice modal.
   document.getElementById("po-category").addEventListener("change", (e) => {
     poCategoryTouched = true;
     if (e.target.value === "__new__") {
@@ -833,13 +835,8 @@ function boot(router) {
     renamingCategory = null;
     categoryModal.classList.remove("open");
   });
-  categoryModal.addEventListener("click", (e) => {
-    if (e.target === categoryModal) {
-      if (categoryModalTarget) categoryModalTarget.value = state.categories[0] || "";
-      renamingCategory = null;
-      categoryModal.classList.remove("open");
-    }
-  });
+  // No click-outside-to-close — protects an unsaved "Add a Category" or
+  // in-progress rename from being lost to a stray backdrop click.
 
   document.getElementById("category-save").addEventListener("click", async () => {
     const name = document.getElementById("category-name").value.trim();
@@ -874,7 +871,7 @@ function boot(router) {
   }
   document.getElementById("btn-new-job-fromtab").addEventListener("click", openJobModal);
   document.getElementById("job-cancel").addEventListener("click", () => jobModal.classList.remove("open"));
-  jobModal.addEventListener("click", (e) => { if (e.target === jobModal) jobModal.classList.remove("open"); });
+  // No click-outside-to-close — same reasoning as the other data-entry modals.
 
   document.getElementById("job-save").addEventListener("click", async () => {
     const name = document.getElementById("job-name").value.trim();
