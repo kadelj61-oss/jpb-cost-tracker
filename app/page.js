@@ -233,14 +233,30 @@ function boot(router) {
       const status = statusOf(c.pct);
       const label = status === "bad" ? "Over Budget" : status === "warn" ? "Watch" : "On Track";
       return (
-        '<div class="cat-card"><div class="cat-card-head"><div class="cat-name">' + c.category + '</div>' +
+        '<div class="cat-card cat-card-clickable" data-filter-category="' + c.category + '" title="View PO lines in this category" role="button" tabindex="0">' +
+        '<div class="cat-card-head">' +
+        '<div class="cat-name">' + c.category + '</div>' +
         '<div class="status-pill ' + status + '">' + label + '</div></div>' +
         '<div class="cat-figures"><span>Budget <b>' + fmtMoney(c.budget) + '</b></span><span>Actual <b>' + fmtMoney(c.cost) + '</b></span></div>' +
         tapeBarHTML(c.pct) +
         '<div class="cat-figures" style="margin-top:6px;margin-bottom:0;"><span>Balance <b>' + fmtMoney(c.balance) + '</b></span><span>' + fmtPct(c.pct) + ' spent</span></div>' +
+        '<div class="cat-card-cta">View PO lines \u2192</div>' +
         '</div>'
       );
     }).join("");
+
+    wrap.querySelectorAll("[data-filter-category]").forEach((el) => {
+      const jumpToFiltered = () => {
+        const category = el.getAttribute("data-filter-category");
+        switchTab("detail");
+        document.getElementById("detail-cat-filter").value = category;
+        renderDetail();
+      };
+      el.addEventListener("click", jumpToFiltered);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); jumpToFiltered(); }
+      });
+    });
   }
 
   function populateCatFilter() {
